@@ -2,6 +2,7 @@ import numpy as np
 import numpy.testing as npt
 
 from life import life_step, build_grids, build_local_grids, setup_4
+from _life import _life_step
 
 size = (4,4)
 glide_size = (16,16)
@@ -69,7 +70,7 @@ def test_two_blocks():
     npt.assert_equal(A, B)
     npt.assert_equal(A, C)
     
-def test_glider():
+def test_glider(step=life_step):
     """check that a glider moves correctly"""
 
     G = np.zeros((3,3), dtype=np.int64)
@@ -82,7 +83,7 @@ def test_glider():
 
     A[1:4,1:4] = G
     
-    life_step(A,B)
+    step(A,B)
     
     C = np.zeros_like(A)
     C[2][[1,3]] = 1
@@ -91,6 +92,9 @@ def test_glider():
     
     npt.assert_equal(B, C)
 
+def test_cython():
+    test_glider(step=_life_step)
+    
 def test_communicate():
     """Verify communications between processes"""
 
@@ -176,3 +180,4 @@ if __name__ == '__main__':
     test_glider()
     test_communicate()
     test_communicating_steps()
+    test_cython()
