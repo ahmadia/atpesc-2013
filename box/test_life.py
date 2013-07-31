@@ -2,7 +2,9 @@ import numpy as np
 import numpy.testing as npt
 
 from life import life_step, build_grids, build_local_grids, setup_4
+from life import setup_parallel
 from _life import _life_step
+from mpi4py import MPI
 
 size = (4,4)
 glide_size = (16,16)
@@ -171,6 +173,48 @@ def test_communicating_steps():
     hashes = [hash_grid(g, s) for g, s in zip(grids, slices)]
              
     assert(sum(hashes) == hash_grid(B, sliceA))
+
+
+def test_parallel_communication():
+    """Verify parallel communication on processes"""
+
+    # build array on process 0, you would never do this in a real code
+    
+
+
+    # now distribute grids to other processors
+    
+    A, l1, l2, sg, grid, cart, comm_start, comm_end = setup_parallel()
+
+    shape = A.shape
+    sliceA = [slice(0,s) for s in shape]
+
+    B = A.copy()
+    B_swap = B.copy()
+
+    # check that subgrids match before we start
+    h = hash_grid(grid, sg)
+
+    h = np.array(h, dtype=np.int64)
+    h_sum = np.empty_like(h)
+
+    cart.Reduce([h, MPI.LONG], [h_sum, MPI.LONG], op=MPI.SUM, root=0)
+
+    rank = cart.Get_rank()
+    size = cart.Get_size()
+            
+    if rank == 0:
+        assert(h_sum == hash_grid(A, sliceA))
+        
+    comm_start()
+    comm_end()
+
+    h = hash_grid(grid, sg)
+    h = np.array(h, dtype=np.int64)
+
+    cart.Reduce([h, MPI.LONG], [h_sum, MPI.LONG], op=MPI.SUM, root=0)
+    if rank == 0:
+        assert(h_sum == hash_grid(A, sliceA))
     
 if __name__ == '__main__':
     test_ones()
@@ -181,3 +225,4 @@ if __name__ == '__main__':
     test_communicate()
     test_communicating_steps()
     test_cython()
+    test_parallel_communication()

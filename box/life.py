@@ -1,6 +1,7 @@
 from numba import autojit
 
 import itertools
+import numpy as np
 
 def communicate(grid, left, right, up, down):
     """ Communicates grid data.  
@@ -42,6 +43,55 @@ def build_local_grids(A, ng):
     lge = list(itertools.product(*lge))
     lslices = [[slice(i,j) for i, j in zip(gsi, gei)] for gsi, gei in zip(lgs, lge)]
     return [A[i].copy() for i in lslices]
+
+def setup_parallel():
+    """Builds and distributes parallel grids"""
+
+    from mpi4py import MPI
+
+    size = MPI.COMM_WORLD.Get_size()
+    ngs = np.sqrt(size)
+    ng = [ngs, ngs]
+    cart = MPI.COMM_WORLD.Create_cart(ng, reorder=True)
+
+    rank = cart.Get_rank()
+    name = MPI.Get_processor_name()
+
+    shape = (16,16)
+    A = np.random.randint(0,2,shape)
+
+    A = cart.bcast(A)
+    
+
+    my_coords = cart.Get_coords(rank)
+
+    gridl = [s/n for s,n in zip(shape,ng)]
+
+    gs = [l*i for i,l in zip(my_coords, gridl)]
+    ge = [l*(i+1) for i,l in zip(my_coords, gridl)]
+
+    lgs = [l*i-1 if i > 0 else 0 for i,l in zip(my_coords, gridl)]
+    lge = [l*(i+1)+1 if i+1 < i else l*(i+1) for i,l in zip(my_coords, gridl)]    
+
+    sg = [slice(s,e) for s,e in zip(gs, ge)]
+    sl = [slice(s,e) for s,e in zip(lgs, lge)]
+
+    
+    grid = A[sg]
+    l1 = A[sl]
+    l2 = l1.copy()
+    
+    def comm_start():
+        # post receives
+        
+        # post sends
+        pass
+        
+    def comm_end():
+        pass
+        # wait
+        
+    return A, l1, l2, sg, grid, cart, comm_start, comm_end
     
 def setup_4(A, local_grids, ng):    
     l_00, l_01, l_10, l_11 = [grid for grid in local_grids]
