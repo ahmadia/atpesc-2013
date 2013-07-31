@@ -1,8 +1,9 @@
 import numpy as np
 from life import life_step
+from _life import _life_step
 import time
 
-def bench_life_step():
+def bench_life_step(step=life_step):
     """ measures how many iterations per second the life step is capable of """
     
     glide_size = [1024,1024]
@@ -15,11 +16,11 @@ def bench_life_step():
     start = time.time()
 
     # cold life_step to throw away
-    life_step(A,B)
+    step(A,B)
     
     for i in range(iters):
-        life_step(A,B)
-        life_step(B,A)
+        step(A,B)
+        step(B,A)
 
     t = time.time() - start
 
@@ -28,3 +29,4 @@ def bench_life_step():
 
 if __name__ == "__main__":
     bench_life_step()
+    bench_life_step(_life_step)
