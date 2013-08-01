@@ -225,8 +225,10 @@ def test_parallel_communication():
 
     rank = cart.Get_rank()
     size = cart.Get_size()
-            
+
+    print rank, grid
     if rank == 0:
+        print A
         assert(h_sum == hash_grid(A, sliceA))
 
     comms.comm_start_1(l1)
@@ -249,7 +251,10 @@ def test_parallel_communication():
     h = np.array(h, dtype=np.int64)
 
     cart.Reduce([h, MPI.LONG], [h_sum, MPI.LONG], op=MPI.SUM, root=0)
+
+    print rank, grid
     if rank == 0:
+        print A
         assert(h_sum == hash_grid(A, sliceA))
     
 if __name__ == '__main__':

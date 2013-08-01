@@ -103,12 +103,12 @@ class Comms:
         self.right_rbuf = None
 
         self.buffered_grid = None
+
+        rank = self.cart.Get_rank()
         
     def comm_start_1(self, grid):
         cart = self.cart
 
-        print grid.shape
-        
         # special handling for non-contiguous data
         if self.left_sbuf is None:
             self.left_sbuf = np.empty((grid.shape[0]-2), np.int)
@@ -121,12 +121,12 @@ class Comms:
             self.right_rbuf = np.empty((grid.shape[0]-2), np.int)
         
         
-        if self.left:
+        if self.left is not None:
             self.left_sbuf[:] = grid[1:-1, 1]
             self.reqs += [cart.Irecv(self.left_rbuf, self.left),
                           cart.Isend(self.left_sbuf, self.left)] 
                           
-        if self.right:
+        if self.right is not None:
             self.right_sbuf[:] = grid[1:-1,-2]
             self.reqs += [cart.Irecv(self.right_rbuf, self.right),
                           cart.Isend(self.right_sbuf, self.right)]
@@ -135,10 +135,10 @@ class Comms:
     def comm_start_2(self, grid):
         cart = self.cart
 
-        if self.up:
+        if self.up is not None:
             self.reqs += [cart.Irecv(grid[0,:], self.up), 
                           cart.Isend(grid[1,:], self.up)]
-        if self.down:
+        if self.down is not None:
             self.reqs += [cart.Irecv(grid[-1,:], self.down),
                           cart.Isend(grid[-2,:], self.down)]
 
@@ -146,13 +146,12 @@ class Comms:
 
         rank = self.cart.Get_rank()
 
-        print "%d: %s" % (rank, self.reqs)
         MPI.Request.Waitall(self.reqs)
 
         if self.buffered_grid is not None:
-            if self.right:
+            if self.right is not None:
                 self.buffered_grid[1:-1,-1] = self.right_rbuf[:] 
-            if self.left:
+            if self.left is not None:
                 self.buffered_grid[1:-1, 0] = self.left_rbuf[:]
             self.buffered_grid = None
 
@@ -161,7 +160,7 @@ def setup_parallel():
     """Builds and distributes parallel grids"""
 
     comms = Comms()
-    shape = (16,16)
+    shape = (4,4)
 
     A = np.random.randint(0,2,shape)
 
