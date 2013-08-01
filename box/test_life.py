@@ -2,7 +2,7 @@ import numpy as np
 import numpy.testing as npt
 
 from life import life_step, build_grids, build_local_grids, setup_4
-from life import setup_parallel
+from life import setup_parallel, Comms
 from _life import _life_step
 from mpi4py import MPI
 
@@ -174,17 +174,40 @@ def test_communicating_steps():
              
     assert(sum(hashes) == hash_grid(B, sliceA))
 
+def test_4_cart_neighbors():
 
+    size = MPI.COMM_WORLD.Get_size()
+    ngs = np.sqrt(size)
+    ng = [ngs, ngs]
+
+    comms = Comms()
+    cart = comms.cart
+
+    rank = cart.Get_rank()
+    coords = cart.Get_coords(rank)
+
+    shape = (16,16)
+    A = np.random.randint(0,2,shape)
+    A = cart.bcast(A)
+
+    if size != 4:
+        return
+
+    neighbors = [comms.left, comms.right, comms.up, comms.down]
+
+    assert(sum([1 for n in neighbors if n is not None]) == 2)
+    assert(sum([n for n in neighbors if n is not None]) == 3)
+    assert(rank not in neighbors)
+    
 def test_parallel_communication():
     """Verify parallel communication on processes"""
 
-    # build array on process 0, you would never do this in a real code
-    
+    # build un-decomposed array on each process
+    # you would never do this in a real code
 
+    A, l1, l2, sg, grid, comms = setup_parallel()
 
-    # now distribute grids to other processors
-    
-    A, l1, l2, sg, grid, cart, comm_start, comm_end = setup_parallel()
+    cart = comms.cart
 
     shape = A.shape
     sliceA = [slice(0,s) for s in shape]
@@ -205,10 +228,23 @@ def test_parallel_communication():
             
     if rank == 0:
         assert(h_sum == hash_grid(A, sliceA))
-        
-    comm_start()
-    comm_end()
 
+    comms.comm_start_1(l1)
+
+    print rank, 1
+    
+    comms.comm_end()
+
+    print rank, 2
+    
+    comms.comm_start_2(l1)
+
+    print rank, 3
+
+    comms.comm_end()
+
+    print rank, 4
+    
     h = hash_grid(grid, sg)
     h = np.array(h, dtype=np.int64)
 
@@ -217,6 +253,7 @@ def test_parallel_communication():
         assert(h_sum == hash_grid(A, sliceA))
     
 if __name__ == '__main__':
+    test_parallel_communication()
     test_ones()
     test_zeros()
     test_block()
@@ -225,4 +262,4 @@ if __name__ == '__main__':
     test_communicate()
     test_communicating_steps()
     test_cython()
-    test_parallel_communication()
+    test_4_cart_neighbors()
