@@ -92,10 +92,10 @@ class Comms:
         self.reqs = []
         
         # get neighbors filtered by boundaries
-        self.left = cart.Get_cart_rank(c - [1,0]) if c[0] > 0 else None
-        self.right = cart.Get_cart_rank(c + [1,0]) if c[0] < ng[0] - 1 else None
-        self.down = cart.Get_cart_rank(c - [0,1]) if c[1] > 0  else None
-        self.up = cart.Get_cart_rank(c + [0,1]) if c[1] < ng[1] - 1 else None
+        self.left = cart.Get_cart_rank(c - [0,1]) if c[1] > 0 else None
+        self.right = cart.Get_cart_rank(c + [0,1]) if c[1] < ng[1] - 1 else None
+        self.down = cart.Get_cart_rank(c - [1,0]) if c[0] > 0  else None
+        self.up = cart.Get_cart_rank(c + [1,0]) if c[0] < ng[0] - 1 else None
 
         self.left_sbuf = None
         self.left_rbuf = None
@@ -136,11 +136,11 @@ class Comms:
         cart = self.cart
 
         if self.up is not None:
-            self.reqs += [cart.Irecv(grid[0,:], self.up), 
-                          cart.Isend(grid[1,:], self.up)]
+            self.reqs += [cart.Irecv(grid[-1,:], self.up), 
+                          cart.Isend(grid[-2,:], self.up)]
         if self.down is not None:
-            self.reqs += [cart.Irecv(grid[-1,:], self.down),
-                          cart.Isend(grid[-2,:], self.down)]
+            self.reqs += [cart.Irecv(grid[0,:], self.down),
+                          cart.Isend(grid[1,:], self.down)]
 
     def comm_end(self):
 
@@ -160,25 +160,23 @@ def setup_parallel():
     """Builds and distributes parallel grids"""
 
     comms = Comms()
-    shape = (4,4)
+    shape = (64,64)
 
     A = np.random.randint(0,2,shape)
 
     cart = comms.cart
     ng   = comms.ng
     A = cart.bcast(A)
-    my_coords = cart.coords
+    rank = cart.Get_rank()
+    my_coords = cart.Get_coords(rank)
     
     gridl = [s/n for s,n in zip(shape,ng)]
 
     gs = [int(l*i) for i,l in zip(my_coords, gridl)]
     ge = [int(l*(i+1)) for i,l in zip(my_coords, gridl)]
-
-    #    print gs
-    #    print ge
     
     lgs = [l*i-1 if i > 0 else 0 for i, l in zip(my_coords, gridl)]
-    lge = [l*(i+1)+1 if l*(i+1)+1 < s  else l*(i+1) for i, l, s in zip(my_coords, gridl, shape)]    
+    lge = [l*(i+1)+1 if l*(i+1)+1 <= s  else l*(i+1) for i, l, s in zip(my_coords, gridl, shape)]    
 
     sg = [slice(s,e) for s,e in zip(gs, ge)]
     sl = [slice(s,e) for s,e in zip(lgs, lge)]

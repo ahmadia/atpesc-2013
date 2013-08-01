@@ -213,7 +213,7 @@ def test_parallel_communication():
     sliceA = [slice(0,s) for s in shape]
 
     B = A.copy()
-    B_swap = B.copy()
+    A_swap = A.copy()
 
     # check that subgrids match before we start
     h = hash_grid(grid, sg)
@@ -225,37 +225,25 @@ def test_parallel_communication():
 
     rank = cart.Get_rank()
     size = cart.Get_size()
-
-    print rank, grid
+    
     if rank == 0:
-        print A
         assert(h_sum == hash_grid(A, sliceA))
 
     comms.comm_start_1(l1)
 
-    print rank, 1
-    
     comms.comm_end()
 
-    print rank, 2
-    
     comms.comm_start_2(l1)
 
-    print rank, 3
-
     comms.comm_end()
 
-    print rank, 4
-    
     h = hash_grid(grid, sg)
     h = np.array(h, dtype=np.int64)
 
     cart.Reduce([h, MPI.LONG], [h_sum, MPI.LONG], op=MPI.SUM, root=0)
 
-    print rank, grid
     if rank == 0:
-        print A
-        assert(h_sum == hash_grid(A, sliceA))
+        assert(h_sum == hash_grid(B, sliceA))
     
 if __name__ == '__main__':
     test_parallel_communication()
