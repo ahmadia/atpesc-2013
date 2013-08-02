@@ -18,7 +18,7 @@ def hash_grid(g, s):
     X = np.mgrid[s]
     h = 0
     for i in range(X.shape[0]):
-        h += np.sum((X[i] + 1)*g)
+        h += np.sum((i*X[i] + i)*g)
     return h
 
 def test_ones():
