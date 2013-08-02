@@ -31,7 +31,8 @@ person on the team must be an ASPEC student.  All submissions will be
 due Thursday at 8:00 AM, local time.
 
 You may work in any language or environment with your code, but it
-*must* pass all of our verification tests to be considered.  We are
+*must* pass all of our verification tests in at least one environment 
+that other students have access to to be considered.  We are
 currently considering three prizes:
 
 ### Performance
